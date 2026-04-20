@@ -10,7 +10,7 @@ export interface AuthRequest extends Request {
     };
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticateAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
     console.log("Reached auth middlewire");
     const authHeader = req.header('Authorization');
     console.log(authHeader);
@@ -29,8 +29,10 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
             email: decoded.email,
             role: decoded.role
         };
-        next();
+        if (req.user.role == "admin") {
+            next();
+        }
     } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
+        res.status(401).json({ message: 'Token is not valid for admin access' });
     }
 };

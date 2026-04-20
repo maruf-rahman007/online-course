@@ -4,9 +4,9 @@ import jwt from 'jsonwebtoken';
 import prisma from '../db';
 import { AuthRequest } from '../middleware/auth';
 
-const generateToken = (user: { id: number; name: string; email: string; role: string }) => {
+const generateToken = (user: { id: number; name: string; email: string; role: string; status:string }) => {
     return jwt.sign(
-        { id: user.id, name: user.name, email: user.email, role: user.role },
+        { id: user.id, name: user.name, email: user.email, role: user.role, status:user.status },
         process.env.JWT_SECRET || 'secret',
         { expiresIn: '1d' }
     );
@@ -37,12 +37,14 @@ export const register = async (req: Request, res: Response) => {
                 email,
                 password: hashedPassword,
                 role: role || 'USER',
+                status:'pending'
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
                 role: true,
+                status:true
             }
         });
 
@@ -79,10 +81,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role,
+            status:user.status
         });
 
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, status:user.status } });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -92,6 +95,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const user = req.user;
+        console.log(user);
         if (!user) {
             res.status(404).json({ message: 'User not found in token' });
             return;
