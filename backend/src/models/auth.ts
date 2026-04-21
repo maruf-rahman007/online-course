@@ -1,13 +1,14 @@
 import prisma from "../db";
+import { Role, Status } from "@prisma/client";
 
 export async function addNewUserDB({ name, email, hashedPassword, role }: any) {
-    const addNewUserDBser = await prisma.user.create({
+    const newUser = await prisma.user.create({
         data: {
             name,
             email,
             password: hashedPassword,
-            role: role || 'USER',
-            status: 'pending'
+            role:     role as Role || Role.STUDENT,
+            status:   Status.PENDING
         },
         select: {
             id: true,
@@ -18,16 +19,15 @@ export async function addNewUserDB({ name, email, hashedPassword, role }: any) {
         }
     });
 
-    return addNewUserDB;
+    return newUser;
 }
-
 
 export async function checkExistingUser(email: string) {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     return existingUser;
 }
 
-export async function checkExistingUserById(id:number) {
+export async function checkExistingUserById(id: number) {
     const existingUser = await prisma.user.findUnique({ where: { id } });
     return existingUser;
 }

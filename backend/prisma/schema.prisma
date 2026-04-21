@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,83 +7,291 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int    @id @default(autoincrement())
-  name        String
-  email       String @unique
-  password    String
-  role        String @default("USER")
-  status      String @default("pending")
-  courses     Courses[]
-  userRoles    UserCustomRole[]
-  timestamp   DateTime @default(now())
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
 }
 
-model Courses {
-  id              Int    @id @default(autoincrement())
-  title           String
-  description     String 
-  category        String
-  difficulty      String
-  pricing         String
-  price           Decimal?
-  thumbnail       String
-  status          String @default("draft")
-  userId          Int      
-  user            User @relation(fields: [userId], references: [id])
-  lessons         Lessons[]
-  timestamp       DateTime @default(now())
+enum Status {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  BANNED
 }
+
+enum CourseStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Pricing {
+  FREE
+  PAID
+}
+
+
+
+model User {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  password    String
+  role        Role     @default(STUDENT)
+  status      Status   @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  // RElations
+  courses       Course[]
+  enrollments   Enrollment[]
+  attempts      QuizAttempt[]
+  certificates  Certificate[]
+  progress      LessonProgress[]
+  customRoles   UserCustomRole[] 
+
+  @@index([email])
+  @@index([role])
+}
+
+
 
 model CustomRole {
-  id          Int    @id @default(autoincrement())
-  name        String @unique
-  permission  Json
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  permissions Json     @default("[]")  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
+  // Relation
   users       UserCustomRole[]
-
-  timestamp   DateTime @default(now())
 }
 
+// junction
 model UserCustomRole {
   userId      Int
   roleId      Int
+  assignedAt  DateTime @default(now())
 
-  user        User       @relation(fields: [userId], references: [id])
-  role        CustomRole @relation(fields: [roleId], references: [id])
+  // RELATION'S
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        CustomRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId])   
+  @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
 }
 
-model Lessons {
+
+model Course {
+  id           Int          @id @default(autoincrement())
+  title        String
+  description  String       @db.Text
+  category     String
+  difficulty   Difficulty
+  pricing      Pricing
+  price        Decimal?     @db.Decimal(10, 2)
+  thumbnail    String
+  status       CourseStatus @default(DRAFT)
+  instructorId Int
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // relation's
+  instructor   User         @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+  lessons      Lesson[]
+  enrollments  Enrollment[]
+  quizzes      Quiz[]
+  certificates Certificate[]
+
+  @@index([instructorId])
+  @@index([status])
+  @@index([category])
+}
+
+
+model Lesson {
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  title     String
+  content   String   @db.Text
+  videoUrl  String
+  sequence  Int
+  isFree    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RELATION
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress  LessonProgress[]
+
+  @@unique([courseId, sequence])
+  @@index([courseId])
+}
+
+
+model Enrollment {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  courseId    Int
+  status      EnrollmentStatus @default(ACTIVE)
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // RELATION
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  progress    LessonProgress[]
+  certificate Certificate?
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+}
+
+
+model LessonProgress {
+  id           Int       @id @default(autoincrement())
+  enrollmentId Int
+  lessonId     Int
+  userId       Int
+  isComplete   Boolean   @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  // relations
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([userId])
+}
+
+
+model Quiz {
+  id          Int      @id @default(autoincrement())
+  courseId    Int
+  title       String
+  timeLimit   Int
+  passMarks   Int
+  maxAttempts Int      @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // relations
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  @@index([courseId])
+}
+
+
+model Question {
+  id         Int      @id @default(autoincrement())
+  quizId     Int
+  text       String   @db.Text
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // relations
+  quiz    Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  answers AttemptAnswer[]
+
+  @@unique([quizId, orderIndex])
+  @@index([quizId])
+}
+
+model QuestionOption {
+  id         Int     @id @default(autoincrement())
+  questionId Int
+  text       String
+  isCorrect  Boolean @default(false)
+
+  // relations
+  question Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  AttemptAnswer[]
+
+  @@index([questionId])
+}
+
+
+
+model QuizAttempt {
+  id          Int       @id @default(autoincrement())
+  studentId   Int
+  quizId      Int
+  score       Decimal   @default(0) @db.Decimal(5, 2)
+  passed      Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+
+  // relations
+  student     User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  quiz        Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     AttemptAnswer[]
+  certificate Certificate?
+
+  @@index([studentId])
+  @@index([quizId])
+  @@index([studentId, quizId])
+}
+
+
+
+model AttemptAnswer {
+  id         Int      @id @default(autoincrement())
+  attemptId  Int
+  questionId Int
+  optionId   Int
+  isCorrect  Boolean
+  createdAt  DateTime @default(now())
+
+  // relations
+  attempt  QuizAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  option   QuestionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+}
+
+
+model Certificate {
   id              Int      @id @default(autoincrement())
+  studentId       Int
   courseId        Int
-  course          Courses @relation(fields: [courseId], references: [id])
-  title           String
-  content         String
-  videourl        String
-  sequence        Int
-  isfree          Boolean
-  timestamp       DateTime @default(now())
-}
+  enrollmentId    Int      @unique
+  attemptId       Int      @unique
+  certificateCode String   @unique @default(uuid())
+  issuedAt        DateTime @default(now())
 
-model Enroll {
-  //id primary key - 
-  // course id
-  // userid 
-  // datetime
-  //status - string
-}
+  // relations
+  student    User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course      @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  enrollment Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  attempt    QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
 
-model lessons_progress {
-  // id pk
-  // enrollmentid
-  // lessionid
-  //iscomplete
-  //datetime
-}
-
-model current_lession {
-  // id pk
-  // lessionid
+  @@index([studentId])
+  @@index([courseId])
 }

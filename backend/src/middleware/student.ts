@@ -13,7 +13,7 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authenticateAdmin = async (
+export const authenticateStudent = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -41,10 +41,10 @@ export const authenticateAdmin = async (
     const decoded = jwt.verify(token, jwtSecret) as any;
 
     req.user = {
-      id:     decoded.id,
-      name:   decoded.name,
-      email:  decoded.email,
-      role:   decoded.role   as Role,
+      id: decoded.id,
+      name: decoded.name,
+      email: decoded.email,
+      role: decoded.role as Role,
       status: decoded.status as Status,
     };
 
@@ -60,8 +60,8 @@ export const authenticateAdmin = async (
 
     const actualRole = await getRole(req.user.id);
 
-    if (!actualRole || actualRole !== Role.ADMIN) {
-      res.status(403).json({ message: 'Access denied: admin role required' });
+    if (!actualRole || actualRole !== Role.STUDENT) {
+      res.status(403).json({ message: 'Access denied: student role required' });
       return;
     }
 
