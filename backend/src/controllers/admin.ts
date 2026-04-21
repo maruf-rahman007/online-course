@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import prisma from '../db';
 import { AuthRequest } from '../middleware/auth';
 import { getPendingCoursesDB, getPendingUsersDB, updateUserStatusDB } from '../models/user';
-import { couseStatusDB } from '../models/courses';
+import { allCoursesDB, courseDeleteDB, couseStatusDB } from '../models/courses';
+import { createNewRole } from '../models/admin';
 
 
 export const reviewUserStatus = async (req: AuthRequest, res: Response) => {
@@ -81,3 +82,52 @@ export const reviewCourseStatus = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
+
+export const createCustomRole = async (req: AuthRequest, res: Response) => {
+    try {
+        const { name, permission } = req.body;
+        
+        if (typeof name !== "string") {
+            return res.status(400).json({ message: "Invalid action" });
+        }
+
+        if (!["moderator", "reviewer", "Senior Lecturer"].includes(name)) {
+            return res.status(400).json({ message: "Invalid action value" });
+        }
+
+        const newrole =  await createNewRole({name,permission});
+
+        res.status(200).json({
+            message:"New Role created successfully",
+            newrole
+        })
+
+    } catch (error) {
+        console.error("ROle creation error:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+export const getAllCourses = async (req: AuthRequest, res: Response) => {
+    try {
+        const courses = await allCoursesDB();
+
+        res.json({
+            courses
+        })
+    } catch (error) {
+        console.error("ROle creation error:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+export const deleteCourse = async (req: AuthRequest, res: Response) => {
+    const id = Number(req.params.id);
+
+    await courseDeleteDB(id);
+
+    res.status(200).json({
+        message: "Course Deleted Successful"
+    })
+}

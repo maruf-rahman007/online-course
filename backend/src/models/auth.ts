@@ -26,3 +26,8 @@ export async function checkExistingUser(email: string) {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     return existingUser;
 }
+
+export async function checkExistingUserById(id:number) {
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+    return existingUser;
+}

@@ -11,19 +11,21 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  name     String
-  email    String @unique
-  password String
-  role     String @default("USER")
-  status   String @default("pending")
-  courses  Courses[]
+  id          Int    @id @default(autoincrement())
+  name        String
+  email       String @unique
+  password    String
+  role        String @default("USER")
+  status      String @default("pending")
+  courses     Courses[]
+  userRoles    UserCustomRole[]
+  timestamp   DateTime @default(now())
 }
 
 model Courses {
   id              Int    @id @default(autoincrement())
   title           String
-  description     String @unique
+  description     String 
   category        String
   difficulty      String
   pricing         String
@@ -32,5 +34,59 @@ model Courses {
   status          String @default("draft")
   userId          Int      
   user            User @relation(fields: [userId], references: [id])
+  lessons         Lessons[]
+  timestamp       DateTime @default(now())
 }
 
+model CustomRole {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  permission  Json
+
+  users       UserCustomRole[]
+
+  timestamp   DateTime @default(now())
+}
+
+model UserCustomRole {
+  userId      Int
+  roleId      Int
+
+  user        User       @relation(fields: [userId], references: [id])
+  role        CustomRole @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])   
+}
+
+model Lessons {
+  id              Int      @id @default(autoincrement())
+  courseId        Int
+  course          Courses @relation(fields: [courseId], references: [id])
+  title           String
+  content         String
+  videourl        String
+  sequence        Int
+  isfree          Boolean
+  timestamp       DateTime @default(now())
+}
+
+model Enroll {
+  //id primary key - 
+  // course id
+  // userid 
+  // datetime
+  //status - string
+}
+
+model lessons_progress {
+  // id pk
+  // enrollmentid
+  // lessionid
+  //iscomplete
+  //datetime
+}
+
+model current_lession {
+  // id pk
+  // lessionid
+}

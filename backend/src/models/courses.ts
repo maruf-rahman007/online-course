@@ -30,25 +30,46 @@ export async function findInstructorsCoursesDB(user: any) {
     return courses;
 }
 
-export async function findValidCourseDB(id:any) {
+export async function findValidCourseDB(id: any) {
     const course = await prisma.courses.findUnique({
         where: {
-            id:Number(id)
+            id: Number(id)
         }
     })
     return course;
 }
 
-export async function couseStatusDB({id,change}:any) {
-    console.log("Update to "+change);
+export async function couseStatusDB({ id, change }: any) {
+    console.log("Update to " + change);
     const course = await prisma.courses.update({
         where: {
-            id:Number(id)
+            id: Number(id)
         },
         data: {
-            status:change
+            status: change
         }
 
     })
     return course;
+}
+
+export async function allCoursesDB() {
+    const allAvailableCourses = await prisma.courses.findMany({
+        where: {
+            status: {
+                in: ['pending', 'publish']
+            }
+        }
+    })
+    return allAvailableCourses;
+}
+
+
+export async function courseDeleteDB(id:number) {
+    await prisma.courses.delete({
+        where: {
+            id
+        }
+    })
+    return;
 }

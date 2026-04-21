@@ -87,7 +87,6 @@ export const courseReviewSubmit = async (req: AuthRequest, res: Response): Promi
             })
         }
 
-
     } catch (error) {
         console.error('Error while adding courses:', error);
         res.status(500).json({ message: 'Server error' });
