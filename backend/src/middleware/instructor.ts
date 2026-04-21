@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { getRole } from '../models/rolecheck';
 
 export interface AuthRequest extends Request {
     user?: {
@@ -7,11 +8,11 @@ export interface AuthRequest extends Request {
         name: string;
         email: string;
         role: string;
-        status: string;
+        status:string;
     };
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticateInstructor = async (req: AuthRequest, res: Response, next: NextFunction) => {
     console.log("Reached auth middlewire");
     const authHeader = req.header('Authorization');
     console.log(authHeader);
@@ -19,7 +20,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
         res.status(401).json({ message: 'No token, authorization denied' });
         return;
     }
-
+    
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
     try {
@@ -31,8 +32,14 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
             role: decoded.role,
             status:decoded.status
         };
-        next();
+        console.log("Inside decoder " +decoded);
+        const actualRole = await getRole(req.user.id);
+
+        if (req.user.role == "instructor" && actualRole == "instructor") {
+            console.log("JWT CORRECT");
+            next();
+        }
     } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
+        res.status(401).json({ message: 'Token is not valid for admin access' });
     }
 };

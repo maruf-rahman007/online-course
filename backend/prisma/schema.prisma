@@ -17,6 +17,7 @@ model User {
   password String
   role     String @default("USER")
   status   String @default("pending")
+  courses  Courses[]
 }
 
 model Courses {
@@ -28,6 +29,8 @@ model Courses {
   pricing         String
   price           Decimal?
   thumbnail       String
-  status          String @default("pending")
+  status          String @default("draft")
+  userId          Int      
+  user            User @relation(fields: [userId], references: [id])
 }
 

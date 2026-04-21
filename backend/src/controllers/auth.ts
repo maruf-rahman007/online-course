@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../db';
 import { AuthRequest } from '../middleware/auth';
+import { addNewUserDB, checkExistingUser } from '../models/auth';
 
 const generateToken = (user: { id: number; name: string; email: string; role: string; status:string }) => {
     return jwt.sign(
@@ -22,7 +23,7 @@ export const register = async (req: Request, res: Response) => {
             return;
         }
 
-        const existingUser = await prisma.user.findUnique({ where: { email } });
+        const existingUser = await checkExistingUser(email);
         if (existingUser) {
             res.status(400).json({ message: 'User already exists' });
             return;
@@ -31,22 +32,7 @@ export const register = async (req: Request, res: Response) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const user = await prisma.user.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                role: role || 'USER',
-                status:'pending'
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                status:true
-            }
-        });
+        const user = await addNewUserDB({name,email,hashedPassword,role});
 
         res.status(201).json({ message: 'User registered successfully', user });
     } catch (error) {
@@ -65,7 +51,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await checkExistingUser(email);
         if (!user) {
             res.status(401).json({ message: 'Invalid credentials' });
             return;
@@ -85,6 +71,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             status:user.status
         });
 
+        console.log("After successful login "+user.status);
+
         res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, status:user.status } });
     } catch (error) {
         console.error('Login error:', error);
@@ -102,10 +90,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         }
 
         // We can also fetch the latest from DB if needed, but returning from token is fine.
-        const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { id: true, name: true, email: true, role: true }
-        });
+        const dbUser = await checkExistingUser(user.email);
 
         if (!dbUser) {
             res.status(404).json({ message: 'User not found' });

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { getRole } from '../models/rolecheck';
 
 export interface AuthRequest extends Request {
     user?: {
@@ -7,10 +8,11 @@ export interface AuthRequest extends Request {
         name: string;
         email: string;
         role: string;
+        status:string;
     };
 }
 
-export const authenticateAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticateAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
     console.log("Reached auth middlewire");
     const authHeader = req.header('Authorization');
     console.log(authHeader);
@@ -27,9 +29,13 @@ export const authenticateAdmin = (req: AuthRequest, res: Response, next: NextFun
             id: decoded.id,
             name: decoded.name,
             email: decoded.email,
-            role: decoded.role
+            role: decoded.role,
+            status:decoded.status
         };
-        if (req.user.role == "admin") {
+
+        const actualRole = await getRole(req.user.id);
+
+        if (req.user.role == "admin" && actualRole == "admin" ) {
             next();
         }
     } catch (err) {
