@@ -1,5 +1,5 @@
 import prisma from "../db";
-import { Role, Status } from "@prisma/client"; // ✅ import enums
+import {  Status } from "@prisma/client"; // ✅ import enums
 
 
 export async function updateUserStatusDB({ id, action }: any) {
@@ -51,7 +51,7 @@ export async function updateUserInfoDB({ updatedInfo, id }: any) {
       name:   updatedInfo.name,
       email:  updatedInfo.email,
       
-      role:   updatedInfo.role   as Role,
+      role:   updatedInfo.role ,
       status: updatedInfo.status as Status,
     },
     select: {

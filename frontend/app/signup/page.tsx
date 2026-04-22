@@ -145,7 +145,7 @@ export default function Signup() {
                   />
                   <span className="text-3xl mb-2">🎒</span>
                   <span className={`font-semibold text-sm ${
-                    formData.role === 'student' ? 'text-indigo-700' : 'text-gray-600'
+                    formData.role === 'STUDENT' ? 'text-indigo-700' : 'text-gray-600'
                   }`}>
                     Student
                   </span>

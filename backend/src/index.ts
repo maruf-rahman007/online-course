@@ -6,6 +6,7 @@ import express, { Request, Response } from 'express';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import instructorRoutes from './routes/instructors';
+import studentRoutes from './routes/students'
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -20,6 +21,7 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/instructor', instructorRoutes);
+app.use('/api/student', studentRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

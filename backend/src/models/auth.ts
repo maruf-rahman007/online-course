@@ -1,5 +1,5 @@
 import prisma from "../db";
-import { Role, Status } from "@prisma/client";
+import {  Status } from "@prisma/client";
 
 export async function addNewUserDB({ name, email, hashedPassword, role }: any) {
     const newUser = await prisma.user.create({
@@ -7,7 +7,7 @@ export async function addNewUserDB({ name, email, hashedPassword, role }: any) {
             name,
             email,
             password: hashedPassword,
-            role:     role as Role || Role.STUDENT,
+            role:     role,
             status:   Status.PENDING
         },
         select: {

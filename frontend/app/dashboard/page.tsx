@@ -8,6 +8,7 @@ interface User {
   name: string
   email: string
   role: string
+  status: string
 }
 
 export default function Dashboard() {
@@ -15,50 +16,64 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const fetchUsers = async (token: string) => {
+    try {
+      console.log("Sending request to backend...")
+      const res = await fetch('http://localhost:4001/api/admin/dashboard', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!res.ok) {
+        throw new Error('Unauthorized')
+      }
+
+      const data = await res.json()
+      console.log("Response from backend:", data)
+
+    } catch (err) {
+      console.error("Fetch error:", err)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.push('/signin')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    // If no token, redirect to login
+    // No token → redirect
     if (!token) {
       router.push('/signin')
       return
     }
 
-    // Try to get user from localStorage
     const storedUser = localStorage.getItem('user')
+
     if (storedUser) {
-      setUser(JSON.parse(storedUser))
-      setLoading(false)
+      // ✅ Parse FIRST, then read role from parsed object directly
+      const parsedUser: User = JSON.parse(storedUser)
+      setUser(parsedUser)
+
+      // ✅ Use parsedUser.role NOT user?.role (state hasn't updated yet)
+      if (parsedUser.role === 'admin') {
+        fetchUsers(token)
+      } else {
+        setLoading(false)
+      }
       return
     }
 
-    // If no stored user, fetch from API using token
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('http://localhost:4001/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+    // No stored user at all
+    setLoading(false)
+    router.push('/signin')
 
-        if (!res.ok) {
-          throw new Error('Unauthorized')
-        }
-
-        const data = await res.json()
-        setUser(data.user || data)
-        localStorage.setItem('user', JSON.stringify(data.user || data))
-      } catch {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        router.push('/signin')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUser()
-  }, [router])
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -111,12 +126,8 @@ export default function Dashboard() {
 
         {/* Welcome Header */}
         <div className="mb-10">
-          <h1 className="text-3xl font-extrabold text-gray-900">
-            Dashboard
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Here&apos;s your account overview
-          </p>
+          <h1 className="text-3xl font-extrabold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Here&apos;s your account overview</p>
         </div>
 
         {/* Profile Card */}
@@ -125,7 +136,7 @@ export default function Dashboard() {
           {/* Card Header */}
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-10 text-center">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-3xl mx-auto mb-4 shadow-md">
-              {user?.role === 'instructor' ? '👨‍🏫' : '🎒'}
+              {user?.role === 'instructor' ? '👨‍🏫' : user?.role === 'admin' ? '🛡️' : '🎒'}
             </div>
             <h2 className="text-2xl font-bold text-white">{user?.name}</h2>
             <span className="inline-block mt-2 px-3 py-1 bg-white/20 text-white text-sm font-medium rounded-full capitalize">
@@ -155,13 +166,13 @@ export default function Dashboard() {
                 <p className="text-lg font-semibold text-gray-800 ml-8">{user?.email}</p>
               </div>
 
-              {/* User ID */}
+              {/* Status */}
               <div className="bg-gray-50 rounded-xl p-5">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-xl">🆔</span>
-                  <span className="text-sm font-medium text-gray-500">User ID</span>
+                  <span className="text-xl">🟢</span>
+                  <span className="text-sm font-medium text-gray-500">Status</span>
                 </div>
-                <p className="text-sm font-mono text-gray-600 ml-8 break-all">{user?._id}</p>
+                <p className="text-sm font-semibold text-gray-800 ml-8 capitalize">{user?.status}</p>
               </div>
 
               {/* Role */}
@@ -174,12 +185,15 @@ export default function Dashboard() {
                   <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold capitalize ${
                     user?.role === 'instructor'
                       ? 'bg-purple-100 text-purple-700'
+                      : user?.role === 'admin'
+                      ? 'bg-red-100 text-red-700'
                       : 'bg-green-100 text-green-700'
                   }`}>
                     {user?.role}
                   </span>
                 </p>
               </div>
+
             </div>
           </div>
         </div>
@@ -192,7 +206,7 @@ export default function Dashboard() {
           >
             <span className="text-3xl block mb-2">📚</span>
             <span className="font-semibold text-gray-800 group-hover:text-indigo-600 transition">
-              {user?.role === 'instructor' ? 'My Courses' : 'Browse Courses'}
+              {user?.role === 'instructor' ? 'My Courses' : user?.role === 'admin' ? 'Manage Courses' : 'Browse Courses'}
             </span>
           </Link>
           <Link
@@ -201,7 +215,7 @@ export default function Dashboard() {
           >
             <span className="text-3xl block mb-2">✏️</span>
             <span className="font-semibold text-gray-800 group-hover:text-indigo-600 transition">
-              {user?.role === 'instructor' ? 'Create Quiz' : 'Take a Quiz'}
+              {user?.role === 'instructor' ? 'Create Quiz' : user?.role === 'admin' ? 'Manage Quizzes' : 'Take a Quiz'}
             </span>
           </Link>
           <Link
@@ -210,10 +224,11 @@ export default function Dashboard() {
           >
             <span className="text-3xl block mb-2">📊</span>
             <span className="font-semibold text-gray-800 group-hover:text-indigo-600 transition">
-              {user?.role === 'instructor' ? 'Analytics' : 'My Progress'}
+              {user?.role === 'instructor' ? 'Analytics' : user?.role === 'admin' ? 'All Analytics' : 'My Progress'}
             </span>
           </Link>
         </div>
+
       </div>
     </div>
   )

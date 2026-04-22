@@ -6,6 +6,15 @@
     INSTRUCTOR → Create Course → Submit → Admin Reviews → Published
     ADMIN      → Approve Users, Approve Courses, Manage Roles
 
+## what each roles can do
+
+![Alt Text](./access.png) 
+
+
+## ER Diagram
+
+![Alt Text](./erdiagram.png) 
+
 
 ## Frontend 
     - nextjs
