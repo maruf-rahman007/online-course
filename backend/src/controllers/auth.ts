@@ -103,3 +103,6 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+

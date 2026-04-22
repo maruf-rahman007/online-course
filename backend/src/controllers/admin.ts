@@ -30,6 +30,7 @@ export const reviewUserStatus = async (req: AuthRequest, res: Response) => {
 export const getDashboard = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user;
+    console.log("Dashbord ", user?.id);
 
     if (!user) {
       res.status(404).json({ message: 'User not found in token' });

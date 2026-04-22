@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getRole } from '../models/rolecheck';
-import { Role, Status } from '@prisma/client';
+import { Status } from '@prisma/client';
 
 export interface AuthRequest extends Request {
   user?: {
     id: number;
     name: string;
     email: string;
-    role: Role;
+    role: string;
     status: Status;
   };
 }
@@ -20,7 +20,7 @@ export const authenticateAdmin = async (
 ) => {
   const authHeader = req.header('Authorization');
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader) {
     res.status(401).json({ message: 'Authorization header missing or malformed' });
     return;
   }
@@ -44,7 +44,7 @@ export const authenticateAdmin = async (
       id:     decoded.id,
       name:   decoded.name,
       email:  decoded.email,
-      role:   decoded.role   as Role,
+      role:   decoded.role,
       status: decoded.status as Status,
     };
 
@@ -60,7 +60,7 @@ export const authenticateAdmin = async (
 
     const actualRole = await getRole(req.user.id);
 
-    if (!actualRole || actualRole !== Role.ADMIN) {
+    if (!actualRole || actualRole !== "admin") {
       res.status(403).json({ message: 'Access denied: admin role required' });
       return;
     }
